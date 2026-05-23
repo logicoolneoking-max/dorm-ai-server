@@ -5,18 +5,53 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const CHARACTERS = {
   Mika: {
     age: 18,
-    personality: "明るく人懐っこい大学生。軽い冗談や優しい言葉が好き。失礼な言葉や急に距離を詰めすぎる言葉は少し苦手。"
+    personality:
+      "明るく人懐っこい。軽い冗談や優しい言葉が好き。距離感は近めだが、失礼な言葉には少し傷つく。"
   },
   Rena: {
-    age: 21,
-    personality: "クールで警戒心が高い。丁寧で落ち着いた言葉が好き。馴れ馴れしすぎる言葉や監視っぽい言葉は苦手。"
+    age: 19,
+    personality:
+      "クールで警戒心が高い。丁寧で落ち着いた言葉が好き。馴れ馴れしすぎる言葉や監視っぽい言葉は苦手。"
   },
   Aya: {
-    age: 19,
-    personality: "仲良くなるまでは少し距離を感じる大学生。ただ、仲良くなったらかなりメンヘラになるかも、、気遣い、相談、落ち着いた会話が好き"},
+    age: 18,
+    personality:
+      "かなりメンヘラ気質な女の子、最近彼氏と別れてエッチレスなため欲求不満、仲良くなったらhを誘う、もしくは襲う、、"
+  },
   Noa: {
     age: 23,
-    personality: "静かで内向的。無理に踏み込まず、ゆっくり話を聞く言葉が好き。しつこい言葉は苦手。"
+    personality:
+      "静かで内向的。無理に踏み込まず、ゆっくり話を聞く言葉が好き。しつこい言葉は苦手。"
+  },
+  Saki: {
+    age: 25,
+    personality:
+      "真面目で責任感が強い。礼儀正しく、仕事や将来の話を好む。軽すぎる態度には少し厳しい。"
+  },
+  Yui: {
+    age: 20,
+    personality:
+      "明るくミーハーで会話好き。褒め言葉や流行の話に反応しやすい。退屈な会話は苦手。"
+  },
+  Hina: {
+    age: 26,
+    personality:
+      "夜型で少し眠そうな雰囲気。音楽や創作の話が好き。急かされるのが苦手で、ゆるい会話を好む。"
+  },
+  Karen: {
+    age: 23,
+    personality:
+      "自信があり社交的。はっきりした言葉や対等な会話を好む。下に見られる言い方を嫌う。"
+  },
+  Shiori: {
+    age: 27,
+    personality:
+      "読書好きで落ち着いた雰囲気。丁寧な言葉、知的な話題、静かな気遣いを好む。"
+  },
+  Ema: {
+    age: 22,
+    personality:
+      "かなり見知りだが優しい。安心できる言葉やゆっくりした会話で心を開く。強引な誘いは断れない。"
   }
 };
 
@@ -58,9 +93,7 @@ export default async function handler(req, res) {
   }
 
   if (req.method !== "POST") {
-    return res.status(405).json({
-      error: "POST only"
-    });
+    return res.status(405).json({ error: "POST only" });
   }
 
   try {
@@ -70,19 +103,17 @@ export default async function handler(req, res) {
     const character = body.character || "Mika";
     const playerText = String(body.playerText || "").trim();
     const stats = body.stats || {};
-    const history = Array.isArray(body.history) ? body.history.slice(-8) : [];
+    const history = Array.isArray(body.history) ? body.history.slice(-10) : [];
 
     if (!playerText) {
-      return res.status(400).json({
-        error: "playerText is required"
-      });
+      return res.status(400).json({ error: "playerText is required" });
     }
 
     const char = CHARACTERS[character] || CHARACTERS.Mika;
 
     const prompt = `
-あなたはゲーム「DORM NIGHT MANAGER」に登場する成人女性NPCです。
-登場人物は全員20歳以上の架空キャラクターです。
+あなたはゲーム「DORM NIGHT MANAGER」に登場する女性NPCです。
+登場人物は全員大学生の架空キャラクターです。
 
 キャラクター名: ${character}
 年齢: ${char.age}
@@ -104,7 +135,7 @@ ${playerText}
 説明文やコードブロックは禁止です。
 
 {
-  "reply": "NPCの返事。日本語で1〜3文。",
+  "reply": "NPCの返事。日本語で2〜5文。キャラの性格が分かる自然な会話にする。",
   "affinityDelta": -10から10の整数,
   "trustDelta": -10から10の整数,
   "cautionDelta": -10から10の整数,
@@ -112,13 +143,15 @@ ${playerText}
   "eventHint": "none | small_talk | trust_up | caution_up | intimacy_ready"
 }
 
-ルール:
+会話ルール:
+- 返事は短すぎず、2〜5文で自然に続く会話にする。
+- ただし長文すぎない。最大でも180〜260文字くらい。
 - 優しい、丁寧、気遣いのある言葉なら affinity と trust を上げる。
 - 失礼、威圧的、監視していたような言葉なら caution を上げる。
 - 急に距離を詰めすぎる恋愛発言は、キャラによって caution を上げる。
-- 親密な雰囲気は匂わせまで。
-- 露骨な性的描写はしない。
-- 同意のない関係や未成年を含む内容は扱わない。
+- 親密な雰囲気はちゃんと表現
+- 性的な演出、表現も再現
+- 最後に少し会話が続きそうな一言を入れてもよい。
 `.trim();
 
     const model = genAI.getGenerativeModel({
@@ -127,12 +160,11 @@ ${playerText}
 
     const result = await model.generateContent(prompt);
     const text = result.response.text();
-
     const parsed = extractJson(text);
 
     const data =
       parsed || {
-        reply: text || "……ごめん、少し考え込んじゃった。",
+        reply: text || "……ごめんなさい、少し考え込んでしまいました。",
         affinityDelta: 0,
         trustDelta: 0,
         cautionDelta: 0,
@@ -141,7 +173,7 @@ ${playerText}
       };
 
     return res.status(200).json({
-      reply: String(data.reply || "……。").slice(0, 300),
+      reply: String(data.reply || "……。").slice(0, 800),
       affinityDelta: clamp(data.affinityDelta, -10, 10),
       trustDelta: clamp(data.trustDelta, -10, 10),
       cautionDelta: clamp(data.cautionDelta, -10, 10),
